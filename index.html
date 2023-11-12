@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity and Collision</title>
+    <style>
+        canvas {
+            border: 1px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="myCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("myCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Ball class
+        class Ball {
+            constructor(x, y, radius, color, dx, dy) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.color = color;
+                this.dx = dx; // X velocity
+                this.dy = dy; // Y velocity
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            update() {
+                // Update ball position based on velocity
+                this.x += this.dx;
+                this.y += this.dy;
+
+                // Apply gravity
+                this.dy += 0.1;
+
+                // Handle collisions with walls
+                if (this.x - this.radius < 0 || this.x + this.radius > canvas.width) {
+                    this.dx = -(this.dx / 2);
+                }
+
+                if (this.y - this.radius < 0 || this.y + this.radius > canvas.height) {
+                    this.dy = -(this.dy / 2);
+                }
+
+                // Handle collisions with other balls
+                balls.forEach(ball => {
+                    if (ball !== this) {
+                        const dx = this.x - ball.x;
+                        const dy = this.y - ball.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < this.radius + ball.radius) {
+                            // Collision detected, update velocities
+                            const angle = Math.atan2(dy, dx);
+                            const speed1 = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+                            const speed2 = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+
+                            const direction1 = Math.atan2(this.dy, this.dx);
+                            const direction2 = Math.atan2(ball.dy, ball.dx);
+
+                            // Swap velocities
+                            this.dx = speed2 * Math.cos(direction2);
+                            this.dy = speed2 * Math.sin(direction2);
+                            ball.dx = speed1 * Math.cos(direction1);
+                            ball.dy = speed1 * Math.sin(direction1);
+
+                            // Separate the balls to avoid continuous collision
+                            const overlap = this.radius + ball.radius - distance;
+                            this.x += (overlap / 2) * Math.cos(angle);
+                            this.y += (overlap / 2) * Math.sin(angle);
+                            ball.x -= (overlap / 2) * Math.cos(angle);
+                            ball.y -= (overlap / 2) * Math.sin(angle);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Create an array of balls
+        const balls = [
+            new Ball(100, 100, 20, "red", 0, 0),
+            new Ball(125, 150, 30, "blue", 0, 0),
+            new Ball(300, 200, 25, "green", 0, 0),
+        ];
+
+        function drawBalls() {
+            balls.forEach(ball => {
+                ball.draw();
+            });
+        }
+
+        function updateBalls() {
+            balls.forEach(ball => {
+                ball.update();
+            });
+        }
+
+        function animate() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw the balls
+            updateBalls();
+            drawBalls();
+
+            // Repeat the animation
+            requestAnimationFrame(animate);
+        }
+
+        // Start the animation
+        animate();
+    </script>
+</body>
+</html>
