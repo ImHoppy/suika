@@ -56,10 +56,88 @@ Composite.add(world, [
 	Bodies.rectangle(-1, Suika.height / 2, size, Suika.height, options) // left
 ]);
 
-function ball(x, y, preview = false) {
-	const newSize = Common.random(0.5, 1.5);
+const ConfigFruits = {
+	'cherries': {
+		img: './img/cherries.png',
+		radius: 50,
+		point: 2,
+		color: '#E34B83',
+	},
+	'strawberry': {
+		img: './img/strawberry.png',
+		radius: 50,
+		point: 4,
+		color: '#DE7250',
+	},
+	'grapes': {
+		img: './img/grapes.png',
+		radius: 50,
+		point: 6,
+		color: '#E077F8',
+	},
+	'lime': {
+		img: './img/lime.png',
+		radius: 50,
+		point: 8,
+		color: '#A9E34B',
+	},
+	'orange': {
+		img: './img/orange.png',
+		radius: 50,
+		point: 10,
+		color: '#E68B53',
+	},
+	'apples': {
+		img: './img/apples.png',
+		radius: 50,
+		point: 12,
+		color: '#FE313A',
+	},
+	'pear': {
+		img: './img/pear.png',
+		radius: 50,
+		point: 14,
+		color: '#F8E077',
+	},
+	'peach': {
+		img: './img/peach.png',
+		point: 16,
+		radius: 50,
+		color: '#E810C4',
+	},
+	'pineapple': {
+		img: './img/pineapple.png',
+		point: 18,
+		radius: 50,
+		color: '#E8C810',
+	},
+	'melon': {
+		img: './img/melon.png',
+		point: 20,
+		radius: 50,
+		color: '#BCFF58',
+	},
+	'watermelon': {
+		img: './img/watermelon.png',
+		point: 22,
+		radius: 50,
+		color: '#009B00',
+	},
+}
 
-	return Bodies.circle(x, y, ballSize * newSize, {
+const getRandomFruit = () => {
+	return Object.keys(ConfigFruits)[Math.floor(Math.random() * 5)];
+}
+
+
+function ball(x, y, preview = false, fruitKey = null) {
+	if (!fruitKey) {
+		fruitKey = getRandomFruit();
+	}
+	fruit = ConfigFruits[fruitKey];
+	const newSize = (fruit.point - 2) / 20 + 0.5;
+
+	const body = Bodies.circle(x, y, ballSize * newSize, {
 		restitution: 0.3,
 		friction: 0.01,
 		isStatic: preview,
@@ -67,25 +145,41 @@ function ball(x, y, preview = false) {
 			group: preview ? -1 : 0
 		},
 		render: {
-			sprite: {
-				xScale: newSize,
-				yScale: newSize,
-				texture: './img/ball.png'
-			}
+			fillStyle: preview ? '#fff' : fruit.color,
+			// sprite: {
+			// 	xScale: newSize,
+			// 	yScale: newSize,
+			// 	texture: './img/ball.png',
+			// }
 		}
 	});
+	Object.assign(body, {
+		fruit: fruitKey,
+		point: fruit.point,
+		preview
+	});
+	return body;
 }
 
-let stack = Composites.stack(50, 10, 3, 1, 10, 0, function (x, y) {
-	return ball(x, y);
-});
+// let stack = Composites.stack(50, 10, 3, 1, 10, 0, function (x, y) {
+// 	return ball(x, y);
+// });
 
-Composite.add(world, stack);
+// Composite.add(world, stack);
 
 let mouse = Mouse.create(render.canvas)
 
 // keep the mouse in sync with rendering
 render.mouse = mouse;
+
+let nextBall = getRandomFruit();
+
+let previewBall = ball(Suika.width / 2, 50, true, nextBall);
+Composite.add(world, previewBall);
+render.canvas.addEventListener('mousemove', function (event) {
+	const x = Math.max(Math.min(event.clientX, Suika.width - (ballSize + (size / 2))), ballSize + (size / 2));
+	previewBall.position.x = x;
+});
 
 let lastClick = 0;
 render.canvas.addEventListener('click', function (event) {
@@ -93,7 +187,11 @@ render.canvas.addEventListener('click', function (event) {
 		lastClick = Date.now();
 
 		const x = Math.max(Math.min(event.clientX, Suika.width - (ballSize + (size / 2))), ballSize + (size / 2));
-		Composite.add(world, ball(x, 150));
+		Composite.add(world, ball(x, 150, false, nextBall));
+
+		nextBall = getRandomFruit();
+		previewBall.render.fillStyle = ConfigFruits[nextBall].color;
+		previewBall.circleRadius = ((ConfigFruits[nextBall].point - 2) / 20 + 0.5) * 50;
 	}
 });
 
