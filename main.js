@@ -1,156 +1,111 @@
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+let Engine = Matter.Engine,
+	Render = Matter.Render,
+	Runner = Matter.Runner,
+	Composites = Matter.Composites,
+	Common = Matter.Common,
+	MouseConstraint = Matter.MouseConstraint,
+	Mouse = Matter.Mouse,
+	Composite = Matter.Composite,
+	Bodies = Matter.Bodies;
 
-const DEBUG = true;
-const FPS = 30;
-const BALL_RADIUS = 20;
-const INIT_BALL_COUNT = 1;
-const MAGIC_NUM = 4;
-const LIFETIME = 1000 * 30;
-let balls = [];
+// create engine
+let engine = Engine.create(),
+	world = engine.world;
 
-class Ball {
-	constructor(x, y) {
-		this.radius = BALL_RADIUS;
-		this.x = x || random_num(0 + this.radius, canvas.width - this.radius);
-		this.y = y || random_num(0 + this.radius, canvas.height - this.radius);
-		this.velocity_x = 0;
-		this.velocity_y = 1;
-		this.gravity = .5;
-		this.friction = .5;
-		this.create_time = Date.now();
-		this.color_hex = '#' + [...Array(6)].map(() => random_num(0, 16).toString(16)).join('');
-		this.opacity = 255;
-		this.fading = false;
-		this.fade_interval_id;
+const Suika = {
+	width: 400,
+	height: 850,
+}
+
+// create renderer
+let render = Render.create({
+	element: document.body,
+	engine: engine,
+	options: {
+		width: Suika.width,
+		height: Suika.height,
+		showAngleIndicator: false,
+		wireframes: false,
 	}
-}
+});
 
-function init() {
-	canvas.style.position = 'absolute';
-	canvas.style.top = 0;
-	canvas.style.left = 0;
+Render.run(render);
 
-	canvas.addEventListener('click', click_handler);
-	window.addEventListener('resize', draw_canvas);
+// create runner
+let runner = Runner.create();
+Runner.run(runner, engine);
 
-	for (let i = 0; i < INIT_BALL_COUNT; i++) {
-		balls.push(new Ball());
-	}
+// add bodies
+let options = {
+	isStatic: true,
+	render: {
+		fillStyle: '#000',
+		strokeStyle: '#000',
+		lineWidth: 0
+	},
+};
 
-	setInterval(draw_canvas, 1000 / FPS);
-}
+world.bodies = [];
 
-function draw_canvas() {
-	clear_canvas();
-	set_canvas_size();
-	for (let i = 0; i < balls.length; i++) {
-		draw_ball(balls[i])
-		move_ball(balls[i])
-	}
-}
+const size = 15
+const ballSize = 46
+Composite.add(world, [
+	Bodies.rectangle(Suika.width / 2, -1, Suika.width, size, options), // top
+	Bodies.rectangle(Suika.width / 2, Suika.height + 1, Suika.width, size, options), // bottom
+	Bodies.rectangle(Suika.width + 1, Suika.height / 2, size, Suika.height, options), // right
+	Bodies.rectangle(-1, Suika.height / 2, size, Suika.height, options) // left
+]);
 
-function clear_canvas() {
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
+function ball(x, y, preview = false) {
+	const newSize = Common.random(0.5, 1.5);
 
-function set_canvas_size() {
-	canvas.height = window.innerHeight;
-	canvas.width = window.innerWidth;
-}
-
-function draw_ball(ball) {
-	ctx.beginPath();
-	ctx.fillStyle = ball.color_hex + ball.opacity.toString(16);
-	ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-	ctx.fill();
-
-	if (DEBUG) draw_ball_text(ball);
-}
-
-function draw_ball_text(ball) {
-	let x = Math.round(ball.x);
-	let y = Math.round(ball.y);
-	let vx = Math.round(ball.velocity_x);
-	let vy = Math.round(ball.velocity_y);
-
-	let text = `x: ${x}, y: ${y}, vx: ${vx}, vy: ${vy}`;
-
-	ctx.font = '15px Arial';
-	ctx.fillText(text, ball.x + ball.radius + 5, ball.y);
-
-	ctx.beginPath();
-	ctx.moveTo(ball.x - ball.radius, ball.y + ball.radius);
-	ctx.lineTo(ball.x + ball.radius, ball.y + ball.radius);
-	ctx.stroke();
-}
-
-function move_ball(ball) {
-	if (ball.y + ball.radius >= canvas.height) {
-		if (ball.velocity_y > 0) {
-			ball.velocity_y = (~ball.velocity_y + 1);
+	return Bodies.circle(x, y, ballSize * newSize, {
+		restitution: 0.3,
+		friction: 0.01,
+		isStatic: preview,
+		collisionFilter: {
+			group: preview ? -1 : 0
+		},
+		render: {
+			sprite: {
+				xScale: newSize,
+				yScale: newSize,
+				texture: './img/ball.png'
+			}
 		}
-		ball.velocity_y = ball.velocity_y * ball.gravity;
-		ball.velocity_x = ball.velocity_x * ball.friction;
-	}
-	ball.y += ball.velocity_y;
-	if (ball.y + ball.radius < canvas.height - MAGIC_NUM) {
-		ball.velocity_y += 1;
-	}
-
-	if (ball.x + ball.radius >= canvas.width || ball.x - ball.radius <= 0) {
-		ball.velocity_x = ~ball.velocity_x + 1;
-		ball.velocity_x = ball.velocity_x * ball.friction;
-	}
-	ball.x += ball.velocity_x;
-
-	if (ball.fading) {
-		return;
-	}
-	if (
-		Math.floor(ball.velocity_x) === 0 &&
-		Math.floor(ball.velocity_y) === 0 &&
-		ball.y + ball.radius > canvas.height - MAGIC_NUM
-	) {
-		fade_ball(ball);
-	} else {
-		if (Date.now() - ball.create_time > LIFETIME) {
-			fade_ball(ball);
-		}
-	}
+	});
 }
 
-function fade_ball(ball) {
-	ball.fading = true;
-	if (ball.fade_interval_id === undefined) {
-		ball.fade_interval_id = setInterval(() => {
-			fade_ball(ball)
-		}, 1);
+let stack = Composites.stack(50, 10, 3, 1, 10, 0, function (x, y) {
+	return ball(x, y);
+});
+
+Composite.add(world, stack);
+
+let mouse = Mouse.create(render.canvas)
+
+// keep the mouse in sync with rendering
+render.mouse = mouse;
+
+let lastClick = 0;
+render.canvas.addEventListener('click', function (event) {
+	if (Date.now() - lastClick > 500) {
+		lastClick = Date.now();
+
+		const x = Math.max(Math.min(event.clientX, Suika.width - (ballSize + (size / 2))), ballSize + (size / 2));
+		Composite.add(world, ball(x, 150));
 	}
-	ball.opacity -= 1;
-	if (ball.opacity <= 5) {
-		clearInterval(ball.fade_interval_id);
-		delete_ball(ball);
-	}
-}
+});
 
-function delete_ball(ball) {
-	for (let i = 0; i < balls.length; i++) {
-		if (balls[i] === ball) {
-			balls.splice(i, 1);
-			break;
-		}
-	}
-	draw_canvas();
-}
+let previewBall = ball(Suika.width / 2, 50, true);
+Composite.add(world, previewBall);
+render.canvas.addEventListener('mousemove', function (event) {
+	const x = Math.max(Math.min(event.clientX, Suika.width - (ballSize + (size / 2))), ballSize + (size / 2));
+	previewBall.position.x = x;
+});
 
-function random_num(min, max) {
-	const r = Math.random() * (max - min) + min;
-	return Math.floor(r);
-}
-
-function click_handler(event) {
-	balls.push(new Ball(event.x, event.y));
-}
-
-init();
+// fit the render viewport to the scene
+Render.lookAt(render, {
+	min: { x: 0, y: 0 },
+	max: { x: Suika.width, y: Suika.height }
+});
