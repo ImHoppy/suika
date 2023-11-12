@@ -195,11 +195,25 @@ render.canvas.addEventListener('click', function (event) {
 	}
 });
 
-let previewBall = ball(Suika.width / 2, 50, true);
-Composite.add(world, previewBall);
-render.canvas.addEventListener('mousemove', function (event) {
-	const x = Math.max(Math.min(event.clientX, Suika.width - (ballSize + (size / 2))), ballSize + (size / 2));
-	previewBall.position.x = x;
+Matter.Events.on(engine, 'collisionStart', function (event) {
+	let pairs = event.pairs;
+	for (let i = 0, j = pairs.length; i != j; ++i) {
+		let pair = pairs[i];
+		if (!pair.bodyA.preview && !pair.bodyB.preview && pair.bodyA.fruit && pair.bodyB.fruit && pair.bodyA.fruit === pair.bodyB.fruit) {
+			const x = pair.bodyA.position.x;
+			const y = pair.bodyA.position.y;
+			Composite.remove(world, pair.bodyA);
+			Composite.remove(world, pair.bodyB);
+			const index = Object.keys(ConfigFruits).indexOf(pair.bodyA.fruit)
+			const nextFruit = Object.keys(ConfigFruits)[index + 1];
+			if (!nextFruit) {
+				alert('Game Over');
+				return;
+			}
+
+			Composite.add(world, ball(x, y, false, nextFruit));
+		}
+	}
 });
 
 // fit the render viewport to the scene
