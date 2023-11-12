@@ -199,11 +199,17 @@ Matter.Events.on(engine, 'collisionStart', function (event) {
 	let pairs = event.pairs;
 	for (let i = 0, j = pairs.length; i != j; ++i) {
 		let pair = pairs[i];
-		if (!pair.bodyA.preview && !pair.bodyB.preview && pair.bodyA.fruit && pair.bodyB.fruit && pair.bodyA.fruit === pair.bodyB.fruit) {
+
+		if (!pair.bodyA.preview && !pair.bodyB.preview
+			&& pair.bodyA.fruit && pair.bodyB.fruit
+			&& pair.bodyA.fruit === pair.bodyB.fruit
+			&& Composite.get(world, pair.bodyA.id, pair.bodyA.type) && Composite.get(world, pair.bodyB.id, pair.bodyB.type)
+		) {
 			const x = pair.bodyA.position.x;
 			const y = pair.bodyA.position.y;
 			Composite.remove(world, pair.bodyA);
 			Composite.remove(world, pair.bodyB);
+
 			const index = Object.keys(ConfigFruits).indexOf(pair.bodyA.fruit)
 			const nextFruit = Object.keys(ConfigFruits)[index + 1];
 			if (!nextFruit) {
