@@ -205,8 +205,8 @@ Matter.Events.on(engine, 'collisionStart', function (event) {
 			&& pair.bodyA.fruit === pair.bodyB.fruit
 			&& Composite.get(world, pair.bodyA.id, pair.bodyA.type) && Composite.get(world, pair.bodyB.id, pair.bodyB.type)
 		) {
-			const x = pair.bodyA.position.x;
-			const y = pair.bodyA.position.y;
+			const x = (pair.bodyA.position.x + pair.bodyB.position.x) / 2;
+			const y = (pair.bodyA.position.y + pair.bodyB.position.y) / 2;
 			Composite.remove(world, pair.bodyA);
 			Composite.remove(world, pair.bodyB);
 
